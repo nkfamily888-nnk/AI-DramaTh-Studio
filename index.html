@@ -18,11 +18,11 @@
     .top p { font-size: 12px; color: var(--muted); }
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .between { justify-content: space-between; }
-    button, .file-lbl {
+    button, .file-lbl, .ext-btn {
       background: var(--elev); color: var(--text); border: 1px solid var(--border);
       padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;
       cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
-      touch-action: manipulation;
+      text-decoration: none; touch-action: manipulation;
     }
     button:active { transform: scale(0.98); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -71,10 +71,11 @@
 <div class="wrap">
   <div class="top">
     <div>
-      <h1>AI Drama Studio</h1>
-      <p>คิดเรื่อง &bull; ปั้นบทเข้มข้น &bull; ล็อกตัวละคร/ฉาก &bull; แตกช็อต &bull; พากย์ไทย</p>
+      <h1>AI Drama Studio <span style="font-size:11px; color:#6ee7b7; font-weight:500;">(Gemini 3.0 + Flow Ready)</span></h1>
+      <p>คิดเรื่อง &bull; ปั้นบทเข้มข้น &bull; ล็อกตัวละคร/ฉาก &bull; ส่งต่อ Google Flow &bull; พากย์ไทย</p>
     </div>
     <div class="row">
+      <a href="https://labs.google/fx/tools/flow" target="_blank" class="ext-btn btn-ok btn-sm">🎬 เปิด Google Flow</a>
       <button onclick="openPlayer()" class="btn-p btn-sm">▶ ฉายพรีวิว</button>
       <button onclick="exportJson()" class="btn-sm">บันทึก .JSON</button>
       <label class="file-lbl btn-sm">เปิด .JSON<input type="file" accept=".json" onchange="importJson(event)" class="hidden" /></label>
@@ -198,8 +199,8 @@
     <div class="card">
       <div class="row between">
         <div>
-          <div class="title">แตกช็อตสตอรี่บอร์ดอัตโนมัติ</div>
-          <div class="sub">แปลงเรื่องย่อเป็นช็อตต่อเนื่อง พร้อมบทพูด ภาพ และมุมกล้อง</div>
+          <div class="title">แตกช็อตสตอรี่บอร์ดอัตโนมัติ (Flow Safe-Prompt)</div>
+          <div class="sub">แปลงเรื่องย่อเป็นช็อตต่อเนื่อง เลี่ยงคำต้องห้ามเพื่อนำไปเจนใน Google Flow ได้ทันที</div>
         </div>
         <div class="row">
           <select id="bGenre" style="width:auto;">
@@ -372,7 +373,7 @@ async function callGemini(prompt, jsonMode) {
   if (!k) { keyEl.focus(); throw new Error('กรุณาวาง Gemini API Key ในช่องด้านบนก่อนครับ'); }
   const body = { contents: [{ parts: [{ text: prompt }] }] };
   if (jsonMode) body.generationConfig = { responseMimeType: 'application/json' };
-  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(k), {
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=' + encodeURIComponent(k), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
   const json = await res.json();
@@ -511,7 +512,9 @@ async function autoShots() {
     const lCtx = data.locations.map(l => `#${l.name}: ${l.prompt}`).join('\n') || 'ไม่มี';
     const prompt = `แปลงเรื่องย่อละครแนว ${g} เป็นบทพูดเข้มข้นและสตอรี่บอร์ด ${cnt} ช็อต
 ตัวละคร:\n${cCtx}\nฉาก:\n${lCtx}
-ใช้ @ชื่อตัวละคร และ #ชื่อฉาก ใน visual_prompt เมื่อตรงกัน
+กฎสำคัญสำหรับ visual_prompt และ motion_prompt:
+- ใช้ @ชื่อตัวละคร และ #ชื่อฉาก เมื่อตรงกับคลัง
+- เขียนแบบ Google Flow Safe-Prompt: ห้ามใช้คำเกี่ยวกับเลือด ศพ อวัยวะภายใน หรือความรุนแรงเด็ดขาด ให้ใช้บรรยากาศลึกลับ แสงจันทร์ เงาตะคุ่ม สีหน้าตกตะลึง แทนเพื่อให้ผ่านนโยบาย AI Video 100%
 ตอบเป็น JSON Object เท่านั้น:
 {"title":"ชื่อตอน","hook":"ประโยคเปิดคลิป","shots":[{"dialogue":"บทพูดไทยเข้มข้น","visual_prompt":"ภาพภาษาอังกฤษ","motion_prompt":"มุมกล้องวิดีโอภาษาอังกฤษ","sfx":"เสียงประกอบ"}]}
 เรื่องย่อ:\n${plot}`;
