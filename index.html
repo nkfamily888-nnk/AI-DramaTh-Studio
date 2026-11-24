@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Drama Studio</title>
+  <style>
+    :root {
+      --bg: #111317; --card: #181b20; --elev: #22262e; --input: #13151a;
+      --border: #2c313c; --text: #e5e7eb; --muted: #9ca3af;
+      --accent: #6366f1; --accent-h: #4f46e5; --ok: #10b981; --err: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; font-size: 14px; line-height: 1.5; padding: 14px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+    .top h1 { font-size: 17px; font-weight: 700; color: #fff; }
+    .top p { font-size: 12px; color: var(--muted); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .between { justify-content: space-between; }
+    button, .file-lbl {
+      background: var(--elev); color: var(--text); border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+      touch-action: manipulation;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-p { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-p:hover { background: var(--accent-h); }
+    .btn-ok { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: #6ee7b7; }
+    .btn-del { color: #fca5a5; border-color: transparent; background: transparent; padding: 5px 8px; }
+    .btn-sm { padding: 5px 9px; font-size: 12px; }
+    input, textarea, select {
+      width: 100%; background: var(--input); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+    .api-bar { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .api-bar input { flex: 1; min-width: 200px; }
+    .tabs { display: flex; gap: 4px; background: var(--card); padding: 4px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 14px; overflow-x: auto; }
+    .tab { flex: 1; min-width: max-content; justify-content: center; background: transparent; border: none; color: var(--muted); }
+    .tab.active { background: var(--elev); color: #fff; font-weight: 600; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .span2 { grid-column: span 2; }
+    @media (max-width: 700px) { .grid2, .grid3 { grid-template-columns: 1fr; } .span2 { grid-column: span 1; } }
+    .box { background: var(--input); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; }
+    .lbl { font-size: 11px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 4px; }
+    .mono { font-family: monospace; font-size: 12px; color: var(--muted); word-break: break-word; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .chip { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: var(--input); color: var(--muted); }
+    .chip-tag { color: #a5b4fc; border-color: rgba(99,102,241,0.35); font-family: monospace; }
+    .scene { display: grid; grid-template-columns: 200px 1fr; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+    @media (max-width: 700px) { .scene { grid-template-columns: 1fr; } }
+    .scene.speaking { border-color: var(--ok); }
+    .img-box { background: #090a0c; border-radius: 8px; min-height: 160px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 6px; }
+    .img-box img { width: 100%; max-height: 260px; object-fit: contain; }
+    .hidden { display: none !important; }
+    .mt2 { margin-top: 8px; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 99; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; }
+    .stage { position: relative; width: 100%; max-width: 360px; height: 65vh; background: #000; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .stage img { width: 100%; height: 100%; object-fit: cover; }
+    .cap { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.92)); padding: 18px 12px 12px; text-align: center; font-size: 15px; font-weight: 500; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>AI Drama Studio</h1>
+      <p>คิดเรื่อง &bull; ปั้นบทเข้มข้น &bull; ล็อกตัวละคร/ฉาก &bull; แตกช็อต &bull; พากย์ไทย</p>
+    </div>
+    <div class="row">
+      <button onclick="openPlayer()" class="btn-p btn-sm">▶ ฉายพรีวิว</button>
+      <button onclick="exportJson()" class="btn-sm">บันทึก .JSON</button>
+      <label class="file-lbl btn-sm">เปิด .JSON<input type="file" accept=".json" onchange="importJson(event)" class="hidden" /></label>
+    </div>
+  </div>
+
+  <!-- API Key Bar -->
+  <div class="api-bar">
+    <span style="font-size:12px; font-weight:600; color:#a5b4fc;">🔑 Gemini API Key:</span>
+    <input id="apiKeyInput" type="password" oninput="saveKey(this.value)" placeholder="วาง Gemini API Key ที่นี่ (AIzaSy...)" />
+    <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:12px; color:#a5b4fc;">รับ Key ฟรี &rarr;</a>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs">
+    <button id="t-story" class="tab active" onclick="goTab('story')">1. คิดเรื่อง & บทพูด</button>
+    <button id="t-asset" class="tab" onclick="goTab('asset')">2. ตัวละคร & ฉาก</button>
+    <button id="t-board" class="tab" onclick="goTab('board')">3. สตอรี่บอร์ด</button>
+    <button id="t-export" class="tab" onclick="goTab('export')">4. ส่งออก CapCut</button>
+  </div>
+
+  <!-- TAB 1: Story & Dialogue -->
+  <div id="p-story">
+    <div class="card">
+      <div class="row between">
+        <div>
+          <div class="title">คิดโครงเรื่องและจุดหักมุมเข้มข้น</div>
+          <div class="sub">พิมพ์คีย์เวิร์ดหรือกดสุ่มเพื่อให้ AI สร้างพล็อต 4 องก์</div>
+        </div>
+        <select id="plotGenre" style="width:auto;">
+          <option value="สยองขวัญพื้นบ้านไทย ลี้ลับ">สยองขวัญพื้นบ้าน / ลี้ลับ</option>
+          <option value="ดราม่าเชือดเฉือน ครอบครัว">ดราม่าเชือดเฉือน</option>
+          <option value="ระทึกขวัญ หักมุม">ระทึกขวัญ / หักมุม</option>
+          <option value="กฎแห่งกรรม สะท้อนสังคม">กฎแห่งกรรม</option>
+        </select>
+      </div>
+      <div class="grid3">
+        <input id="plotKeyword" class="span2" placeholder="คีย์เวิร์ดเช่น ผีกระสือ, มรดกเลือด, คืนเดือนดับ (เว้นว่างเพื่อสุ่ม)" />
+        <select id="plotTone">
+          <option value="กดดัน บีบคั้นอารมณ์">โทน: กดดัน บีบคั้นอารมณ์</option>
+          <option value="หลอนเยือกเย็น ขนลุก">โทน: หลอนเยือกเย็น</option>
+          <option value="ดุเดือด ปะทะคารม">โทน: ดุเดือด ปะทะคารม</option>
+        </select>
+      </div>
+      <div class="row mt2">
+        <button id="btnPlot" onclick="genPlot()" class="btn-p">คิดโครงเรื่องเข้มข้น</button>
+        <button onclick="document.getElementById('plotKeyword').value=''; genPlot();">สุ่มพล็อตใหม่</button>
+      </div>
+
+      <div id="plotOut" class="box hidden">
+        <div class="row between">
+          <strong id="outTitle" style="color:#fff;"></strong>
+          <button onclick="sendToBoard()" class="btn-p btn-sm">ส่งเรื่องนี้ไปแตกช็อต &rarr;</button>
+        </div>
+        <div class="grid2 mt2">
+          <div class="box" style="margin:0;"><span class="lbl">1. เปิดเรื่อง (Hook 3 วิแรก)</span><p id="outHook"></p></div>
+          <div class="box" style="margin:0;"><span class="lbl">2. ปมขัดแย้ง</span><p id="outConf"></p></div>
+          <div class="box" style="margin:0;"><span class="lbl">3. จุดพีคบีบอารมณ์</span><p id="outPeak"></p></div>
+          <div class="box" style="margin:0;"><span class="lbl">4. ตอนจบหักมุม</span><p id="outTwist"></p></div>
+        </div>
+        <div class="mt2">
+          <span class="lbl">เรื่องย่อฉบับเต็ม</span>
+          <p id="outSum" style="color:var(--muted); white-space:pre-line;"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">โรงปั้นบทพูดเชือดเฉือน & ดราม่า</div>
+      <div class="sub">ป้อนเหตุการณ์หรือบทพูดเดิมเพื่อให้ AI เกลาให้คมคายและบีบอารมณ์</div>
+      <div class="grid3">
+        <select id="dlgStyle">
+          <option value="ปะทะคารมเชือดเฉือน ดุเดือด">ปะทะคารมเชือดเฉือน</option>
+          <option value="กระซิบหลอนๆ น่าขนลุก">กระซิบหลอนๆ น่าขนลุก</option>
+          <option value="ตัดพ้อน้ำตาซึม สะเทือนใจ">ตัดพ้อน้ำตาซึม</option>
+          <option value="ข่มขู่ กดดัน เยือกเย็น">ข่มขู่ กดดัน เยือกเย็น</option>
+        </select>
+        <input id="dlgChars" class="span2" placeholder="ตัวละครในฉาก เช่น ยายคำ คุยกับ เปรี้ยว" />
+      </div>
+      <textarea id="dlgSit" rows="3" class="mt2" placeholder="อธิบายเหตุการณ์หรือวางบทพูดเดิมที่อยากเกลา..."></textarea>
+      <div class="mt2">
+        <button id="btnDlg" onclick="genDialogue()" class="btn-p">เขียนบทพูดเข้มข้น</button>
+      </div>
+      <div id="dlgOut" class="box hidden">
+        <div class="row between">
+          <span class="lbl" style="margin:0;">บทพูดที่สร้างเสร็จแล้ว</span>
+          <div class="row">
+            <button onclick="speakText(document.getElementById('outDlgText').innerText)" class="btn-ok btn-sm">🔊 ฟังเสียง</button>
+            <button onclick="copyStr(document.getElementById('outDlgText').innerText)" class="btn-sm">คัดลอก</button>
+          </div>
+        </div>
+        <div id="outDlgText" class="mt2" style="white-space:pre-line;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Characters & Locations -->
+  <div id="p-asset" class="hidden">
+    <div class="grid2">
+      <div class="card">
+        <div class="title">คลังตัวละคร (@ชื่อ)</div>
+        <div class="sub">ล็อกหน้าตาและเสื้อผ้าให้ตรงกันทุกช็อต</div>
+        <input id="cName" placeholder="ชื่อสั้นๆ เช่น ยายคำ, เปรี้ยว" />
+        <textarea id="cDesc" rows="2" class="mt2" placeholder="ลักษณะภาษาอังกฤษ เช่น elderly Thai woman, white bun hair, dark sarong"></textarea>
+        <button onclick="addChar()" class="btn-p mt2">บันทึกตัวละคร</button>
+        <div id="cList" class="mt2"></div>
+      </div>
+      <div class="card">
+        <div class="title">คลังฉากหลัง (#ชื่อฉาก)</div>
+        <div class="sub">ล็อกสถานที่และแสงบรรยากาศให้คงที่</div>
+        <input id="lName" placeholder="ชื่อฉาก เช่น เรือนไม้, ป่าไผ่" />
+        <textarea id="lDesc" rows="2" class="mt2" placeholder="บรรยากาศภาษาอังกฤษ เช่น ancient Thai wooden house at night, misty fog"></textarea>
+        <button onclick="addLoc()" class="btn-p mt2">บันทึกฉากหลัง</button>
+        <div id="lList" class="mt2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Storyboard -->
+  <div id="p-board" class="hidden">
+    <div class="card">
+      <div class="row between">
+        <div>
+          <div class="title">แตกช็อตสตอรี่บอร์ดอัตโนมัติ</div>
+          <div class="sub">แปลงเรื่องย่อเป็นช็อตต่อเนื่อง พร้อมบทพูด ภาพ และมุมกล้อง</div>
+        </div>
+        <div class="row">
+          <select id="bGenre" style="width:auto;">
+            <option value="สยองขวัญพื้นบ้านไทย">สยองขวัญ</option>
+            <option value="ดราม่าเชือดเฉือน">ดราม่า</option>
+            <option value="ระทึกขวัญ หักมุม">ระทึกขวัญ</option>
+          </select>
+          <select id="bCount" style="width:auto;">
+            <option value="3">3 ช็อต</option>
+            <option value="5" selected>5 ช็อต</option>
+            <option value="8">8 ช็อต</option>
+          </select>
+          <select id="bRatio" style="width:auto;">
+            <option value="768x1344">9:16 แนวตั้ง</option>
+            <option value="1344x768">16:9 แนวนอน</option>
+          </select>
+        </div>
+      </div>
+      <textarea id="bPlot" rows="3" class="mt2" placeholder="วางเรื่องย่อที่ส่งมาจากแท็บ 1 หรือพิมพ์พล็อตเรื่องที่นี่..."></textarea>
+      <div class="row between mt2">
+        <span style="font-size:12px; color:var(--muted);">เชื่อม @ตัวละคร และ #ฉาก จากแท็บ 2 อัตโนมัติ</span>
+        <button id="btnAuto" onclick="autoShots()" class="btn-p">สร้างช็อตทั้งหมดอัตโนมัติ</button>
+      </div>
+      <div id="hookBox" class="box hidden">
+        <div class="row between">
+          <span class="lbl" style="margin:0;">ชื่อตอน & Hook 3 วินาทีแรก</span>
+          <button onclick="copyHook()" class="btn-sm">คัดลอก</button>
+        </div>
+        <p id="hTitle" style="font-weight:600; margin-top:4px;"></p>
+        <p id="hLine" style="color:#a5b4fc; font-size:13px;"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">เพิ่มช็อตด้วยตัวเอง</div>
+      <div class="box">
+        <div class="row"><span style="font-size:12px; color:var(--muted);">แทรกตัวละคร:</span><div id="qChars" class="chips" style="margin:0;"></div></div>
+        <div class="row mt2"><span style="font-size:12px; color:var(--muted);">แทรกฉาก:</span><div id="qLocs" class="chips" style="margin:0;"></div></div>
+      </div>
+      <div class="grid2 mt2">
+        <textarea id="sDlg" rows="2" placeholder="1. บทพูดภาษาไทย"></textarea>
+        <textarea id="sPrm" rows="2" placeholder="2. คำบรรยายภาพนิ่ง (อังกฤษ) เช่น @ยายคำ inside #เรือนไม้"></textarea>
+        <input id="sMot" placeholder="3. มุมกล้องวิดีโอ (Motion Prompt)" />
+        <input id="sSfx" placeholder="4. เสียงประกอบ (SFX)" />
+      </div>
+      <div class="chips" id="camChips"></div>
+      <div class="chips" id="motChips"></div>
+      <div class="row mt2">
+        <select id="sRatio" style="width:auto;">
+          <option value="768x1344">9:16 แนวตั้ง</option>
+          <option value="1344x768">16:9 แนวนอน</option>
+        </select>
+        <button onclick="addShot()" class="btn-p">+ เพิ่มช็อต</button>
+      </div>
+    </div>
+
+    <div class="row between" style="margin-bottom:10px;">
+      <strong>รายการช็อตทั้งหมด (<span id="shotTotal">0</span>)</strong>
+      <div class="row">
+        <button onclick="playAll()" class="btn-ok btn-sm">▶ ฟังพากย์ทั้งเรื่อง</button>
+        <button onclick="stopAll()" class="btn-sm">⏹ หยุด</button>
+      </div>
+    </div>
+    <div id="sList"></div>
+  </div>
+
+  <!-- TAB 4: Export -->
+  <div id="p-export" class="hidden">
+    <div class="card">
+      <div class="title">ส่งออกไฟล์สำหรับตัดต่อใน CapCut</div>
+      <div class="grid3 mt2">
+        <div class="box" style="margin:0;">
+          <strong>1. ซับไตเติล (.SRT)</strong>
+          <p class="sub mt2">นำเข้า CapCut เพื่อขึ้นซับตรงตามช็อต</p>
+          <button onclick="dlSrt()" class="btn-p" style="width:100%; justify-content:center;">ดาวน์โหลด .SRT</button>
+        </div>
+        <div class="box" style="margin:0;">
+          <strong>2. ใบถ่ายทำรวม (.TXT)</strong>
+          <p class="sub mt2">รวมบทพูด, Image และ Motion Prompt</p>
+          <button onclick="dlTxt()" style="width:100%; justify-content:center;">ดาวน์โหลด .TXT</button>
+        </div>
+        <div class="box" style="margin:0;">
+          <strong>3. สำรองโปรเจกต์ (.JSON)</strong>
+          <p class="sub mt2">เก็บข้อมูลทั้งหมดไว้เปิดแก้ไขวันหลัง</p>
+          <button onclick="exportJson()" style="width:100%; justify-content:center;">ดาวน์โหลด .JSON</button>
+        </div>
+      </div>
+      <div class="box">
+        <div class="row between">
+          <span class="lbl" style="margin:0;">ตัวอย่างสคริปต์ทั้งหมด</span>
+          <button onclick="copyStr(buildScript())" class="btn-sm">คัดลอกทั้งหมด</button>
+        </div>
+        <pre id="expPreview" class="mono mt2" style="white-space:pre-wrap; max-height:280px; overflow-y:auto;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="modal" class="modal hidden">
+  <div class="row between" style="width:100%; max-width:360px; margin-bottom:8px;">
+    <span id="mCount" style="font-weight:600;">ช็อต 1/1</span>
+    <button onclick="closePlayer()" class="btn-sm">ปิดหน้าต่าง</button>
+  </div>
+  <div class="stage">
+    <img id="mImg" src="" alt="" />
+    <div id="mCap" class="cap"></div>
+  </div>
+  <div class="row mt2">
+    <button onclick="stepPlayer(-1)" class="btn-sm">⏮ ก่อนหน้า</button>
+    <button onclick="stepPlayer(0)" class="btn-ok btn-sm">🔊 เล่นซ้ำ</button>
+    <button onclick="stepPlayer(1)" class="btn-sm">ถัดไป ⏭</button>
+  </div>
+</div>
+
+<script>
+window.onerror = function(msg) { alert('แจ้งเตือนระบบ: ' + msg); };
+
+let data = { characters: [], locations: [], scenes: [], hookInfo: null };
+try {
+  const raw = JSON.parse(localStorage.getItem('ai_drama_state') || '{}');
+  data.characters = Array.isArray(raw.characters) ? raw.characters : [];
+  data.locations = Array.isArray(raw.locations) ? raw.locations : [];
+  data.scenes = Array.isArray(raw.scenes) ? raw.scenes : [];
+  data.hookInfo = raw.hookInfo || null;
+} catch (e) {}
+
+const keyEl = document.getElementById('apiKeyInput');
+keyEl.value = localStorage.getItem('gemini_api_key') || '';
+function saveKey(v) { localStorage.setItem('gemini_api_key', v.trim()); }
+function getKey() { return keyEl.value.trim(); }
+
+let latestPlot = '';
+let playQueue = false;
+let pIdx = 0;
+let pActive = false;
+
+const CAMS = [
+  { l: 'Close-up ซูมหน้า', t: 'extreme close-up shot, detailed facial expression' },
+  { l: 'Medium ครึ่งตัว', t: 'medium shot, waist-up framing' },
+  { l: 'Wide มุมกว้าง', t: 'wide angle establishing shot' },
+  { l: 'Low Angle มุมเสย', t: 'dramatic low angle shot looking up' },
+  { l: 'แสงจันทร์หลอน', t: 'eerie moonlight, dark shadows, misty night' },
+  { l: 'แสงตะเกียงสลัว', t: 'warm flickering candlelight, deep shadows' }
+];
+const MOTS = [
+  { l: 'Zoom In', t: 'slow dramatic camera zoom in' },
+  { l: 'Zoom Out', t: 'slow camera zoom out' },
+  { l: 'Pan Left', t: 'smooth slow camera pan left' },
+  { l: 'Pan Right', t: 'smooth slow camera pan right' },
+  { l: 'หันหน้าช้าๆ', t: 'character slowly turns head with shocked expression' },
+  { l: 'กล้องสั่น', t: 'tense handheld camera shake' }
+];
+
+function persist() {
+  try { localStorage.setItem('ai_drama_state', JSON.stringify(data)); } catch (e) {}
+  render();
+}
+
+function goTab(name) {
+  ['story', 'asset', 'board', 'export'].forEach(t => {
+    document.getElementById('p-' + t).classList.toggle('hidden', t !== name);
+    document.getElementById('t-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'export') document.getElementById('expPreview').innerText = buildScript();
+}
+
+async function callGemini(prompt, jsonMode) {
+  const k = getKey();
+  if (!k) { keyEl.focus(); throw new Error('กรุณาวาง Gemini API Key ในช่องด้านบนก่อนครับ'); }
+  const body = { contents: [{ parts: [{ text: prompt }] }] };
+  if (jsonMode) body.generationConfig = { responseMimeType: 'application/json' };
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(k), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error?.message || 'เชื่อมต่อ Gemini API ไม่สำเร็จ');
+  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function genPlot() {
+  const btn = document.getElementById('btnPlot');
+  btn.disabled = true; btn.innerText = 'กำลังคิดเรื่อง...';
+  try {
+    const g = document.getElementById('plotGenre').value;
+    const kw = document.getElementById('plotKeyword').value.trim();
+    const tn = document.getElementById('plotTone').value;
+    const chars = data.characters.length ? 'ตัวละครที่มี: ' + data.characters.map(c => c.name).join(', ') : '';
+    const prompt = `คิดพล็อตละครสั้น 1-2 นาที แนว: ${g} โทน: ${tn} คีย์เวิร์ด: ${kw || 'สุ่มใหม่ให้น่าตื่นเต้น'} ${chars}
+ตอบเป็น JSON Object เท่านั้น:
+{"title":"ชื่อเรื่อง","hook":"เปิดเรื่อง 3 วิแรก","conflict":"ปมขัดแย้ง","climax":"จุดพีค","twist":"ตอนจบหักมุม","summary":"เรื่องย่อตั้งแต่ต้นจนจบเพื่อแตกช็อต"}`;
+    const txt = await callGemini(prompt, true);
+    const obj = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    document.getElementById('outTitle').innerText = obj.title || '-';
+    document.getElementById('outHook').innerText = obj.hook || '-';
+    document.getElementById('outConf').innerText = obj.conflict || '-';
+    document.getElementById('outPeak').innerText = obj.climax || '-';
+    document.getElementById('outTwist').innerText = obj.twist || '-';
+    document.getElementById('outSum').innerText = obj.summary || '-';
+    latestPlot = `ชื่อเรื่อง: ${obj.title}\nHook: ${obj.hook}\nเนื้อเรื่อง: ${obj.summary}\nหักมุม: ${obj.twist}`;
+    document.getElementById('plotOut').classList.remove('hidden');
+  } catch (e) { alert(e.message); }
+  finally { btn.disabled = false; btn.innerText = 'คิดโครงเรื่องเข้มข้น'; }
+}
+
+function sendToBoard() {
+  if (!latestPlot) return;
+  document.getElementById('bPlot').value = latestPlot;
+  goTab('board');
+}
+
+async function genDialogue() {
+  const sit = document.getElementById('dlgSit').value.trim();
+  if (!sit) return alert('กรุณาใส่เหตุการณ์หรือบทพูดเดิมครับ');
+  const btn = document.getElementById('btnDlg');
+  btn.disabled = true; btn.innerText = 'กำลังเขียนบท...';
+  try {
+    const st = document.getElementById('dlgStyle').value;
+    const ch = document.getElementById('dlgChars').value.trim();
+    const prompt = `เขียนบทพูดละครภาษาไทยให้เข้มข้น คมคาย สมจริง อารมณ์: ${st} ตัวละคร: ${ch || 'ตามเหตุการณ์'} สถานการณ์: "${sit}" ส่งเฉพาะบทพูดพร้อมชื่อตัวละครนำหน้าบรรทัด ห้ามอธิบายเพิ่ม`;
+    const txt = await callGemini(prompt, false);
+    document.getElementById('outDlgText').innerText = txt.trim();
+    document.getElementById('dlgOut').classList.remove('hidden');
+  } catch (e) { alert(e.message); }
+  finally { btn.disabled = false; btn.innerText = 'เขียนบทพูดเข้มข้น'; }
+}
+
+async function polishShot(id) {
+  const s = data.scenes.find(x => x.id === id);
+  if (!s) return;
+  const btn = document.getElementById('pol-' + id);
+  if (btn) { btn.disabled = true; btn.innerText = '...'; }
+  try {
+    const txt = await callGemini(`เกลาบทพูดละครสั้นประโยคนี้ให้เข้มข้นบีบอารมณ์ขึ้น ตอบเฉพาะประโยคภาษาไทยสั้นๆ 1-2 ประโยค: "${s.dialogue || s.rawPrompt}"`, false);
+    if (txt.trim()) { s.dialogue = txt.replace(/^["']|["']$/g, '').trim(); persist(); }
+  } catch (e) { alert(e.message); }
+  finally { if (btn) { btn.disabled = false; btn.innerText = 'เกลาบท'; } }
+}
+
+function addChar() {
+  const name = document.getElementById('cName').value.trim().replace(/^@/, '');
+  const prompt = document.getElementById('cDesc').value.trim();
+  if (!name || !prompt) return alert('กรอกชื่อและลักษณะตัวละครให้ครบครับ');
+  data.characters.push({ id: Date.now(), name, prompt });
+  document.getElementById('cName').value = ''; document.getElementById('cDesc').value = '';
+  persist();
+}
+function delChar(id) { data.characters = data.characters.filter(x => x.id !== id); persist(); }
+
+function addLoc() {
+  const name = document.getElementById('lName').value.trim().replace(/^#/, '');
+  const prompt = document.getElementById('lDesc').value.trim();
+  if (!name || !prompt) return alert('กรอกชื่อและบรรยากาศฉากให้ครบครับ');
+  data.locations.push({ id: Date.now(), name, prompt });
+  document.getElementById('lName').value = ''; document.getElementById('lDesc').value = '';
+  persist();
+}
+function delLoc(id) { data.locations = data.locations.filter(x => x.id !== id); persist(); }
+
+function insTxt(elId, txt) {
+  const el = document.getElementById(elId);
+  el.value = el.value.trim() ? el.value.trim() + ', ' + txt : txt;
+}
+
+function resolvePrm(raw) {
+  let out = raw;
+  data.characters.forEach(c => { out = out.replace(new RegExp('@' + c.name + '(?=\\s|,|\\.|!|\\?|$)', 'g'), `(${c.prompt})`); });
+  data.locations.forEach(l => { out = out.replace(new RegExp('#' + l.name + '(?=\\s|,|\\.|!|\\?|$)', 'g'), `(${l.prompt})`); });
+  return out;
+}
+
+function makeShot(dlg, raw, ratio, mot, sfx) {
+  const comp = resolvePrm(raw);
+  const [w, h] = ratio.split('x');
+  const seed = Math.floor(Math.random() * 999999);
+  return {
+    id: Date.now() + Math.floor(Math.random() * 9999),
+    dialogue: dlg, rawPrompt: raw, compiledPrompt: comp,
+    motionPrompt: mot || 'slow cinematic camera push in',
+    sfx: sfx || 'เสียงบรรยากาศ',
+    imgUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(comp)}?width=${w}&height=${h}&seed=${seed}&nologo=true`,
+    ratio, seed
+  };
+}
+
+function addShot() {
+  const raw = document.getElementById('sPrm').value.trim();
+  if (!raw) return alert('กรุณากรอกคำบรรยายภาพครับ');
+  data.scenes.push(makeShot(
+    document.getElementById('sDlg').value.trim(), raw,
+    document.getElementById('sRatio').value,
+    document.getElementById('sMot').value.trim(),
+    document.getElementById('sSfx').value.trim()
+  ));
+  ['sDlg', 'sPrm', 'sMot', 'sSfx'].forEach(i => document.getElementById(i).value = '');
+  persist();
+}
+
+async function autoShots() {
+  const plot = document.getElementById('bPlot').value.trim();
+  if (!plot) return alert('กรุณาใส่เรื่องย่อก่อนครับ');
+  const btn = document.getElementById('btnAuto');
+  btn.disabled = true; btn.innerText = 'กำลังสร้างช็อต...';
+  try {
+    const g = document.getElementById('bGenre').value;
+    const cnt = document.getElementById('bCount').value;
+    const ratio = document.getElementById('bRatio').value;
+    const cCtx = data.characters.map(c => `@${c.name}: ${c.prompt}`).join('\n') || 'ไม่มี';
+    const lCtx = data.locations.map(l => `#${l.name}: ${l.prompt}`).join('\n') || 'ไม่มี';
+    const prompt = `แปลงเรื่องย่อละครแนว ${g} เป็นบทพูดเข้มข้นและสตอรี่บอร์ด ${cnt} ช็อต
+ตัวละคร:\n${cCtx}\nฉาก:\n${lCtx}
+ใช้ @ชื่อตัวละคร และ #ชื่อฉาก ใน visual_prompt เมื่อตรงกัน
+ตอบเป็น JSON Object เท่านั้น:
+{"title":"ชื่อตอน","hook":"ประโยคเปิดคลิป","shots":[{"dialogue":"บทพูดไทยเข้มข้น","visual_prompt":"ภาพภาษาอังกฤษ","motion_prompt":"มุมกล้องวิดีโอภาษาอังกฤษ","sfx":"เสียงประกอบ"}]}
+เรื่องย่อ:\n${plot}`;
+    const txt = await callGemini(prompt, true);
+    const res = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    const shots = res.shots || [];
+    if (!shots.length) throw new Error('ไม่ได้รับข้อมูลช็อต กรุณาลองใหม่');
+    data.hookInfo = { title: res.title || '', hook: res.hook || '' };
+    shots.forEach(s => data.scenes.push(makeShot(s.dialogue || '', s.visual_prompt || '', ratio, s.motion_prompt || '', s.sfx || '')));
+    document.getElementById('bPlot').value = '';
+    persist();
+  } catch (e) { alert(e.message); }
+  finally { btn.disabled = false; btn.innerText = 'สร้างช็อตทั้งหมดอัตโนมัติ'; }
+}
+
+function updMot(id, val) {
+  const s = data.scenes.find(x => x.id === id);
+  if (s) { s.motionPrompt = val; localStorage.setItem('ai_drama_state', JSON.stringify(data)); }
+}
+
+function regenShot(id) {
+  const s = data.scenes.find(x => x.id === id);
+  if (!s) return;
+  s.compiledPrompt = resolvePrm(s.rawPrompt);
+  s.seed = Math.floor(Math.random() * 999999);
+  const [w, h] = s.ratio.split('x');
+  s.imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(s.compiledPrompt)}?width=${w}&height=${h}&seed=${s.seed}&nologo=true`;
+  persist();
+}
+
+function delShot(id) { data.scenes = data.scenes.filter(x => x.id !== id); persist(); }
+
+function speakText(txt, cb) {
+  if (!txt) { if (cb) setTimeout(cb, 2000); return; }
+  if (!('speechSynthesis' in window)) return alert('เบราว์เซอร์ไม่รองรับเสียงอ่าน');
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = 'th-TH';
+  const v = window.speechSynthesis.getVoices().find(x => x.lang.includes('th'));
+  if (v) u.voice = v;
+  u.onend = () => { if (cb) cb(); };
+  u.onerror = () => { if (cb) cb(); };
+  window.speechSynthesis.speak(u);
+}
+
+function speakShot(id, cb) {
+  const s = data.scenes.find(x => x.id === id);
+  if (!s) return;
+  document.querySelectorAll('.scene').forEach(e => e.classList.remove('speaking'));
+  const card = document.getElementById('sc-' + id);
+  if (card) card.classList.add('speaking');
+  speakText(s.dialogue, () => {
+    if (card) card.classList.remove('speaking');
+    if (cb) cb();
+  });
+}
+
+function playAll() {
+  if (!data.scenes.length) return alert('ยังไม่มีช็อตครับ');
+  playQueue = true; let i = 0;
+  function next() {
+    if (!playQueue || i >= data.scenes.length) { playQueue = false; return; }
+    speakShot(data.scenes[i++].id, () => setTimeout(next, 400));
+  }
+  next();
+}
+function stopAll() { playQueue = false; if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }
+
+function openPlayer() {
+  if (!data.scenes.length) return alert('กรุณาเพิ่มช็อตก่อนเปิดพรีวิวครับ');
+  stopAll(); pActive = true; pIdx = 0;
+  document.getElementById('modal').classList.remove('hidden');
+  runPlayer(0);
+}
+function closePlayer() { pActive = false; stopAll(); document.getElementById('modal').classList.add('hidden'); }
+function runPlayer(idx) {
+  if (!pActive) return;
+  pIdx = Math.max(0, Math.min(data.scenes.length - 1, idx));
+  const s = data.scenes[pIdx];
+  document.getElementById('mCount').innerText = `ช็อต ${pIdx + 1}/${data.scenes.length}`;
+  document.getElementById('mImg').src = s.imgUrl;
+  document.getElementById('mCap').innerText = s.dialogue || '';
+  speakText(s.dialogue, () => {
+    if (pActive && pIdx + 1 < data.scenes.length) setTimeout(() => runPlayer(pIdx + 1), 500);
+  });
+}
+function stepPlayer(d) { runPlayer(d === 0 ? pIdx : pIdx + d); }
+
+function copyStr(t) { navigator.clipboard.writeText(t); alert('คัดลอกแล้ว'); }
+function copyHook() { if (data.hookInfo) copyStr(`${data.hookInfo.title}\n${data.hookInfo.hook}`); }
+
+function buildScript() {
+  let out = '=== ใบถ่ายทำ AI Drama Studio ===\n';
+  if (data.hookInfo) out += `ชื่อตอน: ${data.hookInfo.title}\nHook: ${data.hookInfo.hook}\n\n`;
+  out += data.scenes.map((s, i) => `[ช็อต ${i + 1}]\nบทพูด: ${s.dialogue || '-'}\nSFX: ${s.sfx || '-'}\nImage: ${s.compiledPrompt}\nMotion: ${s.motionPrompt || '-'}\n`).join('\n---\n');
+  return out;
+}
+
+function dlSrt() {
+  if (!data.scenes.length) return alert('ยังไม่มีช็อตครับ');
+  let t = 0;
+  const fmt = sec => `${String(Math.floor(sec/3600)).padStart(2,'0')}:${String(Math.floor((sec%3600)/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')},000`;
+  const srt = data.scenes.map((s, i) => {
+    const txt = s.dialogue || `(ฉาก ${i + 1})`;
+    const dur = Math.max(3, Math.ceil(txt.length / 8));
+    const block = `${i + 1}\n${fmt(t)} --> ${fmt(t + dur)}\n${txt}\n`;
+    t += dur; return block;
+  }).join('\n');
+  dlFile(srt, 'subtitles.srt', 'text/plain');
+}
+function dlTxt() { dlFile(buildScript(), 'script.txt', 'text/plain'); }
+function exportJson() { dlFile(JSON.stringify(data, null, 2), 'drama-project.json', 'application/json'); }
+function dlFile(content, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name; a.click();
+}
+function importJson(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => { const j = JSON.parse(ev.target.result); data = { characters: j.characters || [], locations: j.locations || [], scenes: j.scenes || [], hookInfo: j.hookInfo || null }; persist(); };
+  r.readAsText(f);
+}
+
+function render() {
+  const hb = document.getElementById('hookBox');
+  if (data.hookInfo && data.hookInfo.title) {
+    hb.classList.remove('hidden');
+    document.getElementById('hTitle').innerText = data.hookInfo.title;
+    document.getElementById('hLine').innerText = data.hookInfo.hook;
+  } else hb.classList.add('hidden');
+
+  document.getElementById('cList').innerHTML = data.characters.map(c =>
+    `<div class="box row between"><div><strong style="color:#a5b4fc;">@${c.name}</strong><div class="mono">${c.prompt}</div></div><button onclick="delChar(${c.id})" class="btn-del">ลบ</button></div>`
+  ).join('');
+  document.getElementById('lList').innerHTML = data.locations.map(l =>
+    `<div class="box row between"><div><strong style="color:#6ee7b7;">#${l.name}</strong><div class="mono">${l.prompt}</div></div><button onclick="delLoc(${l.id})" class="btn-del">ลบ</button></div>`
+  ).join('');
+
+  document.getElementById('qChars').innerHTML = data.characters.map(c => `<button class="chip chip-tag" onclick="insTxt('sPrm','@${c.name}')">+@${c.name}</button>`).join('') || '<span style="font-size:11px;color:var(--muted);">ไม่มี</span>';
+  document.getElementById('qLocs').innerHTML = data.locations.map(l => `<button class="chip chip-tag" onclick="insTxt('sPrm','#${l.name}')">+#${l.name}</button>`).join('') || '<span style="font-size:11px;color:var(--muted);">ไม่มี</span>';
+  document.getElementById('camChips').innerHTML = CAMS.map(c => `<button class="chip" onclick="insTxt('sPrm','${c.t}')">${c.l}</button>`).join('');
+  document.getElementById('motChips').innerHTML = MOTS.map(m => `<button class="chip" onclick="insTxt('sMot','${m.t}')">${m.l}</button>`).join('');
+
+  document.getElementById('shotTotal').innerText = data.scenes.length;
+  document.getElementById('sList').innerHTML = data.scenes.map((s, i) => `
+    <div id="sc-${s.id}" class="scene">
+      <div>
+        <div class="img-box"><img src="${s.imgUrl}" loading="lazy" /></div>
+        <a href="${s.imgUrl}" target="_blank" style="font-size:12px; color:#a5b4fc; display:block; text-align:center;">เปิดภาพเต็มจอ</a>
+      </div>
+      <div>
+        <div class="row between">
+          <strong>ช็อตที่ ${i + 1}</strong>
+          <div class="row">
+            <button id="pol-${s.id}" onclick="polishShot(${s.id})" class="btn-sm">เกลาบท</button>
+            <button onclick="regenShot(${s.id})" class="btn-sm">เจนภาพใหม่</button>
+            <button onclick="delShot(${s.id})" class="btn-del btn-sm">ลบ</button>
+          </div>
+        </div>
+        <div class="box">
+          <p>${s.dialogue || '-'}</p>
+          <p style="font-size:12px; color:var(--muted); margin-top:4px;">SFX: ${s.sfx || '-'}</p>
+          <button onclick="speakShot(${s.id})" class="btn-ok btn-sm mt2">🔊 ฟังเสียงพากย์</button>
+        </div>
+        <div class="box row between" style="flex-wrap:nowrap;">
+          <div class="mono"><strong>Image:</strong> ${s.compiledPrompt}</div>
+          <button onclick="copyStr(\`${s.compiledPrompt.replace(/`/g,'\\`')}\`)" class="btn-sm">คัดลอก</button>
+        </div>
+        <div class="box">
+          <div class="row between">
+            <span class="lbl" style="margin:0; color:#a5b4fc;">Motion Prompt (พิมพ์แก้สด)</span>
+            <button onclick="copyStr(document.getElementById('mot-${s.id}').value)" class="btn-p btn-sm">คัดลอกไปเจนวิดีโอ</button>
+          </div>
+          <textarea id="mot-${s.id}" oninput="updMot(${s.id}, this.value)" rows="2" class="mono mt2">${s.motionPrompt || ''}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+render();
+</script>
+</body>
+</html>
